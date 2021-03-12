@@ -1,0 +1,273 @@
+---
+title: "Lab 4"
+author: "Amir ElTabakh"
+output: pdf_document
+date: "11:59PM March 10, 2021"
+---
+
+Load up the famous iris dataset. We are going to do a different prediction problem. Imagine the only input x is Species and you are trying to predict y which is Petal.Length. A reasonable prediction is the average petal length within each Species. Prove that this is the OLS model by fitting an appropriate `lm` and then using the predict function to verify.
+
+```{r}
+data(iris)
+mod = lm(Petal.Length ~ Species, iris)
+#head(mod, 20)
+
+mean(iris$Petal.Length[iris$Species == "setosa"])
+mean(iris$Petal.Length[iris$Species == "versicolor"])
+mean(iris$Petal.Length[iris$Species == "virginica"])
+
+predict(mod, data.frame(Species = c("setosa")))
+predict(mod, data.frame(Species = c("versicolor")))
+predict(mod, data.frame(Species = c("virginica")))
+```
+
+Construct the design matrix with an intercept, $X$, without using `model.matrix`.
+
+```{r}
+X = cbind(1, iris$Species == "versicolor", iris$Species == "virginica")
+head(X)
+```
+
+Find the hat matrix $H$ for this regression.
+
+```{r}
+H = X %*% solve(t(X) %*% X) %*% t(X)
+Matrix::rankMatrix(H)
+```
+
+Verify this hat matrix is symmetric using the `expect_equal` function in the package `testthat`.
+
+```{r}
+#install.packages("pacman")
+pacman::p_load(testthat)
+expect_equal(H, t(H))
+```
+
+Verify this hat matrix is idempotent using the `expect_equal` function in the package `testthat`.
+
+```{r}
+expect_equal(H, H %*% H)
+```
+
+Using the `diag` function, find the trace of the hat matrix.
+
+```{r}
+sum(diag(H))
+```
+
+It turns out the trace of a hat matrix is the same as its rank! But we don't have time to prove these interesting and useful facts..
+
+For masters students: create a matrix $X_\perp$.
+
+```{r}
+I = diag(nrow(H))
+x_perp = (I - H) %*% X
+
+t(x_perp) %*% X
+```
+
+Using the hat matrix, compute the $\hat{y}$ vector and using the projection onto the residual space, compute the $e$ vector and verify they are orthogonal to each other.
+
+```{r}
+y = iris$Petal.Length
+y_hat = H %*% y
+table(y_hat)
+I = diag(nrow(iris))
+e = (I - H) %*% y
+head(e)
+
+expect_equal(t(e) %*% y_hat, as.matrix(0))
+Matrix::rankMatrix(I - H)
+```
+
+Compute SST, SSR and SSE and $R^2$ and then show that SST = SSR + SSE.
+
+```{r}
+SSE = t(e) %*% e
+y_bar = mean(y)
+SST = t(y - y_bar) %*% (y - y_bar)
+
+Rsq = 1 - SSE/SST
+Rsq
+
+SSR = t(y_hat - y_bar) %*% (y_hat - y_bar)
+SSR
+
+expect_equal(SSR+SSE, SST)
+
+var(y)
+var(e)
+
+n = 150
+Rsqs = array(NA, n)
+for (p_plus_one in 2 : n){
+  X = cbind(X, rnorm(n))
+  Rsqs[p_plus_one] = summary(lm(y ~ X))$r.squared
+}
+
+pacman::p_load(ggplot2)
+base = ggplot(data.frame(p_plus_one = 1 : n, Rsq = Rsqs))
+base + geom_line(aes(x = p_plus_one, y = Rsq))
+```
+
+Find the angle $\theta$ between $y$ - $\bar{y}1$ and $\hat{y} - \bar{y}1$ and then verify that its cosine squared is the same as the $R^2$ from the previous problem.
+
+```{r}
+theta = acos(t(y - y_bar) %*% (y_hat - y_bar) / sqrt(SST*SSR))
+theta = theta *180/ pi
+theta
+```
+
+Project the $y$ vector onto each column of the $X$ matrix and test if the sum of these projections is the same as yhat.
+
+```{r}
+proj1 = (X[,1] %*% t(X[,1]) / as.numeric(t(X[,1]) %*% X[,1])) %*% y
+proj2 = (X[,2] %*% t(X[,2]) / as.numeric(t(X[,2]) %*% X[,2])) %*% y
+proj3 = (X[,3] %*% t(X[,3]) / as.numeric(t(X[,3]) %*% X[,3])) %*% y
+
+
+#expect_equal(proj1 + proj2 + proj3, y_hat)
+# Not supposed to be equal. We can only add the projections if the vectors are orthogonal
+```
+
+Construct the design matrix without an intercept, $X$, without using `model.matrix`.
+
+```{r}
+X2 = cbind(iris$Species == "setosa", as.numeric(iris$Species == "versicolor"), iris$Species == "virginica")
+y = iris$Petal.Length
+head(X2)
+```
+
+Find the OLS estimates using this design matrix. It should be the sample averages of the petal lengths within species.
+
+```{r}
+# Hat matrix AKA Projection matrix
+H2 = X2 %*% solve(t(X2) %*% X2) %*% t(X2)
+y_hat2 = H2 %*% y
+
+unique(y_hat2)
+unique(y_hat)
+
+# Actual means
+mean(iris$Petal.Length[iris$Species == "setosa"])
+mean(iris$Petal.Length[iris$Species == "versicolor"])
+mean(iris$Petal.Length[iris$Species == "virginica"])
+```
+
+Verify the hat matrix constructed from this design matrix is the same as the hat matrix constructed from the design matrix with the intercept. (Fact: orthogonal projection matrices are unique).
+
+```{r}
+pacman::p_load(testthat)
+expect_equal(H, H2)
+```
+
+Project the $y$ vector onto each column of the $X$ matrix and test if the sum of these projections is the same as yhat.
+
+```{r}
+Hy = H2 %*% y
+expect_equal(Hy, y_hat2)
+```
+
+Convert this design matrix into $Q$, an orthonormal matrix.
+
+```{r}
+qrX = qr(X2)
+Q = qr.Q(qrX)
+R = qr.R(qrX)
+dim(Q)
+dim(R)
+Matrix::rankMatrix(Q)
+Matrix::rankMatrix(R)
+
+#verification
+sum(Q[, 1]^2) #normalized?
+sum(Q[, 2]^2) #normalized?
+sum(Q[, 3]^2) #normalized?
+Q[, 1] %*% Q[, 2] #orthogonal?
+Q[, 1] %*% Q[, 3] #orthogonal?
+Q[, 2] %*% Q[, 3] #orthogonal?
+
+```
+
+Project the $y$ vector onto each column of the $Q$ matrix and test if the sum of these projections is the same as yhat.
+
+```{r}
+proj1 = (Q[,1] %*% t(Q[,1]) / as.numeric(t(Q[,1]) %*% Q[,1])) %*% y
+proj2 = (Q[,2] %*% t(Q[,2]) / as.numeric(t(Q[,2]) %*% Q[,2])) %*% y
+proj3 = (Q[,3] %*% t(Q[,3]) / as.numeric(t(Q[,3]) %*% Q[,3])) %*% y
+
+yhat_Q = Q %*% t(Q) %*% y
+head(y_hat2)
+head(yhat_Q)
+expect_equal(yhat_Q, y_hat2)
+```
+
+Find the $p=3$ linear OLS estimates if $Q$ is used as the design matrix using the `lm` method. Is the OLS solution the same as the OLS solution for $X$?
+
+```{r}
+mod_Q= lm(Petal.Length ~ 0 + Q, iris)
+mod_Q
+mod_X = lm(y ~ X2, iris)
+mod_X
+```
+
+Use the predict function and ensure that the predicted values are the same for both linear models: the one created with $X$ as its design matrix and the one created with $Q$ as its design matrix.
+
+```{r}
+predict(mod_Q, data.frame(Q))
+predict(mod_X, data.frame(X2[1]))
+```
+
+
+Clear the workspace and load the boston housing data and extract $X$ and $y$. The dimensions are $n=506$ and $p=13$. Create a matrix that is $(p + 1) \times (p + 1)$ full of NA's. Label the columns the same columns as X. Do not label the rows. For the first row, find the OLS estimate of the $y$ regressed on the first column only and put that in the first entry. For the second row, find the OLS estimates of the $y$ regressed on the first and second columns of $X$ only and put them in the first and second entries. For the third row, find the OLS estimates of the $y$ regressed on the first, second and third columns of $X$ only and put them in the first, second and third entries, etc. For the last row, fill it with the full OLS estimates.
+
+```{r}
+boston <- MASS::Boston
+y = MASS::Boston$medv
+X = as.matrix(cbind(1, MASS::Boston[, 1 : 13]))
+n = nrow(X)
+p_plus_one = ncol(X)
+matrix <- matrix(NA, nrow = p_plus_one, ncol = p_plus_one, dimnames = list(NULL,colnames(X)))
+
+for (i in 1:ncol(matrix)){
+  b=array(NA, dim = ncol(matrix))
+  X_star = X[, 1:i]
+  X_star = as.matrix(X_star)
+  XTX_inv = solve(t(X_star) %*% X_star)
+  b[1:i] = XTX_inv %*% t(X_star) %*% y
+  matrix[i, ] <- b
+}
+matrix
+```
+
+Why are the estimates changing from row to row as you add in more predictors?
+
+Every row is a different model, with a different number of features. The first row represents a model with no features, only a y-intercept. The second row represents a model with the y-intercept, and a single feature crim, with its associated weight. We find that the values of the weights of a single feature may vary as we change the number of features we fit the model on. This is because the estimates of the weights 
+
+Create a vector of length $p+1$ and compute the R^2 values for each of the above models. 
+
+```{r}
+Rsq_array = array(dim = p_plus_one)
+ybar = mean(y)
+SST = sum((y - ybar)^2)
+
+
+for(i in 1:nrow(matrix)){
+  b = c(matrix[i, 1:i], rep(0, nrow(matrix) - i))
+  
+  # Calculating SSR for every row in matrix
+  yhat = X %*% b
+  SSR = sum((yhat - ybar)^2)
+  Rsq = SSR/SST
+  Rsq_array[i] = Rsq
+}
+Rsq_array
+
+pacman::p_load(ggplot2)
+base = ggplot(data.frame(Predictors_Fitted = 1 : nrow(matrix), Rsq = Rsq_array)) + geom_line(aes(x = Predictors_Fitted, y = Rsq_array))
+base
+
+```
+
+Is R^2 monotonically increasing? Why?
+Yes! It seems so. We are projecting better and better with every feature.
