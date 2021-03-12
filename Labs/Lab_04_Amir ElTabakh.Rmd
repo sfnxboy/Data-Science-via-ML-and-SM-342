@@ -270,4 +270,4 @@ base
 ```
 
 Is R^2 monotonically increasing? Why?
-Yes! It seems so. We are projecting better and better with every feature.
+Yes! R^2 is increasing because we are fitting more features on the model with every iteration. Does this mean that the model becomes better as R^2 increases? Not necessarily, we are likely over-fitting the model with these addition features.
