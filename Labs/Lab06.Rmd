@@ -1,0 +1,494 @@
+---
+title: "Lab 6"
+author: "Amir ElTabakh"
+output: pdf_document
+date: "11:59PM April 15, 2021"
+---
+
+#Visualization with the package ggplot2
+
+I highly recommend using the [ggplot cheat sheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) as a reference resource. You will see questions that say "Create the best-looking plot". Among other things you may choose to do, remember to label the axes using real English, provide a title, subtitle. You may want to pick a theme and color scheme that you like and keep that constant throughout this lab. The default is fine if you are running short of time.
+
+Load up the `GSSvocab` dataset in package `carData` as `X` and drop all observations with missing measurements. 
+
+```{r}
+pacman::p_load(carData)
+data(GSSvocab)
+GSSvocab <- na.omit(GSSvocab)
+?GSSvocab
+```
+
+Briefly summarize the documentation on this dataset. What is the data type of each variable? What do you think is the response variable the collectors of this data had in mind?
+
+There are 29 thousand observations, with 8 variables. The data set illustrates a students characteristics with features such as age, nativeBorn, years of education, and year they took the test. The vocab feature specifies the number of words correct out of 10 on a vocabulary test. There is an age feature that represents the age of the respondent in years.
+
+Create two different plots and identify the best-looking plot you can to examine the `age` variable. Save the best looking plot as an appropriately-named PDF.
+
+```{r}
+pacman::p_load(ggplot2)
+ggplot(GSSvocab) +
+  aes(x = age) +
+  geom_histogram(bins = 50)+
+  ggthemes::theme_wsj()
+
+ggplot(GSSvocab) +
+  aes(x = age) +
+  geom_bar(bins = 50)+
+  ggthemes::theme_wsj()
+
+plot = ggplot(GSSvocab) +
+  aes(x = age) +
+  geom_bar(bins = 50)+
+  ggthemes::theme_wsj()
+ggsave("lab_06_plot.pdf", plot = plot)
+```
+
+Create two different plots and identify the best looking plot you can to examine the `vocab` variable. Save the best looking plot as an appropriately-named PDF.
+
+```{r}
+# Histogram
+ggplot(GSSvocab) +
+  aes(x = vocab) +
+  geom_histogram() +
+  ggthemes::theme_wsj()
+
+# Bar chart
+ggplot(GSSvocab) +
+  aes(x = vocab) +
+  geom_bar() +
+  ggthemes::theme_wsj()
+
+```
+
+Create the best-looking plot you can to examine the `ageGroup` variable by `gender`. Does there appear to be an association? There are many ways to do this.
+
+```{r}
+ggplot(GSSvocab, aes(x = ageGroup, y = gender)) + 
+    geom_jitter(size = 1) + 
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  ) 
+
+# The dots are very coarse, so we have trouble differentiating the density of different parts of the plot.
+
+ggplot(GSSvocab, aes(x = ageGroup, y = gender)) + 
+    geom_jitter(size = 0.05) + 
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+
+# The plot is still too dense, so lets sample the GSSvocab dataset, and then repeat.
+
+ggplot(GSSvocab[1:3000,], aes(x = ageGroup, y = gender)) + 
+    geom_jitter(size = 0.05) + 
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+
+```
+
+Create the best-looking plot you can to examine the `vocab` variable by `age`. Does there appear to be an association?
+
+```{r}
+ggplot(GSSvocab, aes(x = age, y = vocab)) + 
+  geom_point() + 
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  ) 
+
+# This plot does not seem too informative, lets try a jitter plot.
+
+ggplot(GSSvocab, aes(x = age, y = vocab)) + 
+  geom_jitter() + 
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  ) 
+
+# We can kind of see an association, but we can do better.
+```
+
+Add an estimate of $f(x)$ using the smoothing geometry to the previous plot. Does there appear to be an association now?
+
+```{r}
+ggplot(GSSvocab, aes(x = age, y = vocab)) + 
+  geom_jitter(alpha = 0.2) + 
+  geom_smooth() +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+```
+
+Using the plot from the previous question, create the best looking overloading with variable `gender`. Does there appear to be an interaction of `gender` and `age`?
+
+```{r}
+ggplot(GSSvocab, aes(x = age, y = vocab)) + 
+  geom_jitter(aes(col = gender), size = 0.1) + 
+  geom_smooth() +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+# This plot still is not too informative because the data is so varied. We still cannot find a strong association between any of the variables.
+```
+
+
+Using the plot from the previous question, create the best looking overloading with variable `nativeBorn`. Does there appear to be an interaction of `nativeBorn` and `age`?
+
+```{r}
+ggplot(GSSvocab, aes(x = age, y = vocab)) + 
+  geom_jitter(aes(col = nativeBorn), size = 0.5) + 
+  geom_smooth() +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+```
+
+Create two different plots and identify the best-looking plot you can to examine the `vocab` variable by `educGroup`. Does there appear to be an association?
+
+```{r}
+# Jitter plot
+ggplot(GSSvocab, aes(x = educGroup, y = vocab)) + 
+  geom_jitter(size = 0.5) +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+
+# Box plot
+ggplot(GSSvocab, aes(x = educGroup, y = vocab)) + 
+  geom_boxplot() +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+# The box plot returns a very informative chart. We can see that those groups with higher education perform better on the vocab chart.
+
+#Desnity plot but with colors!
+ggplot(GSSvocab, aes(x = vocab)) + 
+  geom_density(aes(fill = educGroup), adjust = 2, alpha = 0.5) +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+# GOOOORGEOUS
+
+# Violin
+ggplot(GSSvocab, aes(x = educGroup, y = vocab)) + 
+  geom_violin() +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+# Not very smooth because the vocab feature is discrete
+
+```
+
+Using the best-looking plot from the previous question, create the best looking overloading with variable `gender`. Does there appear to be an interaction of `gender` and `educGroup`?
+
+```{r}
+ggplot(GSSvocab, aes(x = educGroup, y = vocab)) + 
+  geom_boxplot(aes(col = gender)) +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+```
+
+Using facets, examine the relationship between `vocab` and `ageGroup`. You can drop year level `(Other)`. Are we getting dumber?
+
+```{r}
+ggplot(GSSvocab) +
+  aes(x=vocab) +
+  geom_density(adjust=2, fill= "black") + 
+  facet_grid(ageGroup~.) +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+```
+
+# Probability Estimation and Model Selection
+
+Load up the `adult` in the package `ucidata` dataset and remove missingness and the variable `fnlwgt`:
+
+```{r}
+pacman::p_load_gh("coatless/ucidata")
+data(adult)
+adult = na.omit(adult) #kill any observations with missingness
+adult$fnlwgt = NULL
+?adult
+```
+
+Cast income to binary where 1 is the `>50K` level.
+
+```{r}
+adult$income = ifelse(adult$income == ">50K", 1, 0)
+table(adult$income)
+```
+
+
+We are going to do some dataset cleanup now. But in every cleanup job, there's always more to clean! So don't expect this cleanup to be perfect. 
+
+
+Firstly, a couple of small things. In variable `marital_status` collapse the levels `Married-AF-spouse` (armed forces marriage) and `Married-civ-spouse` (civilian marriage) together into one level called `Married`. Then in variable `education` collapse the levels `1st-4th` and `Preschool` together into a level called `<=4th`.
+
+```{r}
+adult$marital_status = as.character(adult$marital_status)
+adult$marital_status = ifelse(adult$marital_status == "Married-AF-spouse" | adult$marital_status == "Married-civ-spouse", "married", adult$marital_status)
+adult$marital_status = as.factor(adult$marital_status)
+
+adult$education = as.character(adult$education)
+adult$education = ifelse(adult$education == "1st-4th" | adult$education == "Preschool", "<=4th", adult$education)
+adult$education = as.factor(adult$education)
+```
+
+Create a model matrix `Xmm` (for this prediction task) and show that it is *not* full rank (i.e. the result of `ncol` is greater than the result of `Matrix::rankMatrix`).
+
+```{r}
+Xmm = model.matrix(income ~., adult)
+ncol(Xmm)
+Matrix::rankMatrix(Xmm)
+```
+
+Now tabulate and sort the variable `native_country`.
+
+```{r}
+tab = sort(table(adult$native_country))
+tab
+```
+
+Do you see rare levels in this variable? Explain why this may be a problem.
+
+Yes I do see rare levels! For instance, there is only one indivudual from the Netherlands, only 12 from Honduras, etc. This might be a problem because if we attempt to run an OLS model, then the data might not be full rank. 
+
+Collapse all levels that have less than 50 observations into a new level called `other`. This is a very common data science trick that will make your life much easier. If you can't hope to model rare levels, just give up and do something practical! I would recommend first casting the variable to type "character" and then do the level reduction and then recasting back to type `factor`. Tabulate and sort the variable `native_country` to make sure you did it right.
+
+```{r}
+adult$native_country = as.character(adult$native_country)
+adult$native_country = ifelse(adult$native_country %in% names(tab[tab < 50]), "Other", adult$native_country)
+adult$native_country = as.factor(adult$native_country)
+table(adult$native_country)
+```
+
+We're still not done getting this data down to full rank. Take a look at the model matrix just for `workclass` and `occupation`. Is it full rank?
+
+No, this is not full rank, as per the code below.
+
+
+```{r}
+Xmm = model.matrix(income ~ workclass + occupation, adult)
+ncol(Xmm)
+Matrix::rankMatrix(Xmm)
+```
+
+These variables are similar and they probably should be interacted anyway eventually. Let's combine them into one factor. Create a character variable named `worktype` that is the result of concatenating `occupation` and `workclass` together with a ":" in between. Use the `paste` function with the `sep` argument (this casts automatically to type `character`). Then tabulate its levels and sort. 
+
+```{r}
+adult$occupation = as.character(adult$occupation)
+adult$workclass = as.character(adult$workclass)
+adult$worktype = paste(adult$occupation, adult$workclass, sep = ":")
+
+adult$occupation = NULL
+adult$workclass = NULL
+
+tab_worktype = sort(table(adult$worktype))
+tab_worktype
+```
+
+Like the `native_country` exercise, there are a lot of rare levels. Collapse levels with less than 100 observations to type `other` and then cast this variable `worktype` as type `factor`. Recheck the tabulation to ensure you did this correct.
+
+```{r}
+adult$worktype = as.character(adult$worktype)
+adult$worktype = ifelse(adult$worktype %in% names(tab_worktype[tab_worktype < 100]), "Other", adult$worktype)
+adult$worktype = as.factor(adult$worktype)
+tab_worktype2 = sort(table(adult$worktype))
+tab_worktype2
+```
+
+
+To do at home: merge the two variables `relationship` and `marital_status` together in a similar way to what we did here.
+
+```{r}
+adult$relationship = as.character(adult$relationship)
+adult$marital_status = as.character(adult$marital_status)
+adult$relationship_marital_status = paste(adult$marital_status, adult$relationship, sep = ":")
+tab_relationship_marital_status = sort(table(adult$relationship_marital_status))
+
+adult$relationship = NULL
+adult$marital_status = NULL
+
+tab_relationship_marital_status
+```
+
+We are finally ready to fit some probability estimation models for `income`! In lecture 16 we spoke about model selection using a cross-validation procedure. Let's build this up step by step. First, split the dataset into `Xtrain`, `ytrain`, `Xtest`, `ytest` using K=5.
+
+```{r}
+K = 5
+test_prop = 1/K
+train_indices = sample(1 : nrow(adult), round((1 - test_prop) * nrow(adult)))
+adult_train = adult[train_indices, ]
+y_train = adult_train$income
+X_train = adult_train
+X_train$income = NULL
+test_indices = setdiff(1 : nrow(adult), train_indices)
+adult_test = adult[test_indices, ]
+y_test = adult_test$income
+X_test = adult_test
+X_test$income = NULL
+```
+
+Create the following four models on the training data in a `list` objected named `prob_est_mods`: logit, probit, cloglog and cauchit (which we didn't do in class but might as well). For the linear component within the link function, just use the vanilla raw features using the `formula` object `vanilla`. Each model's key in the list is its link function name + "-vanilla". One for loop should do the trick here.
+
+```{r}
+link_functions = c("logit", "probit", "cloglog", "cauchit")
+vanilla = income ~ .
+prob_est_mods = list()
+
+for(link_function in link_functions) {
+  prob_est_mods[[paste(link_function, "vanilla", sep = "-")]] = glm(vanilla, adult_train, family=binomial(link = link_function))
+}
+```
+
+Now let's get fancier. Let's do some variable transforms. Add `log_capital_loss` derived from `capital_loss` and `log_capital_gain` derived from `capital_gain`. Since there are zeroes here, use log_x = log(1 + x) instead of log_x = log(x). That's always a neat trick. Just add them directly to the data frame so they'll be picked up with the `.` inside of a formula.
+
+```{r}
+adult$log_capital_loss = log(1 + adult$capital_loss)
+adult$log_capital_gain = log(1 + adult$capital_gain)
+```
+
+Create a density plot that shows the age distribution by `income`.
+
+```{r}
+ggplot(adult, aes(x = age)) + 
+  geom_density(aes(fill = factor(income)), adjust = 2, alpha = 0.5) +
+  ggthemes::theme_wsj() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_text(size = 11, face = "bold"),
+    axis.title.y = ggplot2::element_text(size = 11, face = "bold")
+  )
+```
+
+What do you see? Is this expected using common sense?
+
+Earlier we cast the income variable to a binary variable, 1 for values greater than 50k, and 0 for values less than or equal to 50k. It makes sense to see the mode age of the individuals with income greater than 50k be of a greater than the mode age of the individuals with income less than 50k. Observe how the curve of individuals with values less than 50k decreases at around age 25, this is likely due to the population getting better paying careers at this age.
+
+Now let's fit the same models with all link functions on a formula called `age_interactions` that uses interactions for `age` with all of the variables. Add all these models to the `prob_est_mods` list.
+
+```{r}
+K = 5
+test_prop = 1/K
+train_indices = sample(1 : nrow(adult), round((1 - test_prop) * nrow(adult)))
+adult_train = adult[train_indices, ]
+y_train = adult_train$income
+X_train = adult_train
+X_train$income = NULL
+test_indices = setdiff(1 : nrow(adult), train_indices)
+adult_test = adult[test_indices, ]
+y_test = adult_test$income
+X_test = adult_test
+X_test$income = NULL
+
+age_interactions = income ~ . *age
+for(link_function in link_functions) {
+  prob_est_mods[[paste(link_function, "age_interactions", sep = "-")]] = glm(formula = age_interactions, data = adult_train, family=binomial(link = link_function))
+}
+```
+
+Create a function called `brier_score` that takes in a probability estimation model, a dataframe `X` and its responses `y` and then calculates the brier score.
+
+```{r}
+brier_score = function(prob_est_mod, X, y){
+  phat = predict(prob_est_mod, X, type = "response")
+  mean(-(y-phat)^2)
+}
+```
+
+Now, calculate the in-sample Brier scores for all models. You can use the function `lapply` to iterate over the list and pass in in the function `brier_score`.
+
+```{r}
+lapply(prob_est_mods, brier_score, X_train, y_train)
+```
+
+Now, calculate the out-of-sample Brier scores for all models. You can use the function `lapply` to iterate over the list and pass in the function `brier_score`.
+
+```{r}
+lapply(prob_est_mods, brier_score, X_test, y_test)
+```
+
+Which model wins in sample and which wins out of sample? Do you expect these results? Explain.
+
+For in-sample metrics, the vanilla logit and probit models performed just as well. This conclusion goes for age-interactions.
+For out of sample metrics, the logit and probit models again performed just as well, and this conclusion goes for age-interactions as well.
+Its important to note that the logit models outperformed the probit models by a relatively very small margin in all cases.
+
+What is wrong with this model selection procedure? There are a few things wrong.
+The train-test split was done pseudo-randomly, and it would be better practice to adopt a better model selection technique, such as nested resampling.
+
+#TO-DO
+
+Run all the models again. This time do three splits: subtrain, select and test. After selecting the best model, provide a true oos Brier score for the winning model.
+
+```{r}
+n = nrow(adult)
+K = 5
+test_indices = sample(1 : n, size = n * 1 / K)
+master_train_indices = setdiff(1 : n, test_indices) ##overall train
+select_indices = sample(master_train_indices, size = n * 1 / K)
+subtrain_indices = setdiff(master_train_indices, select_indices) 
+
+
+adult_subtrain = adult[subtrain_indices, ]
+y_subtrain = adult_subtrain$income
+adult_select = adult[select_indices, ]
+y_select = adult_select$income
+adult_test = adult[test_indices, ]
+y_test = adult_test$income
+```
+
+```{r}
+mods = list()
+
+for (link_function in link_functions){
+  mods[[paste(link_function, "vanilla", sep = "-")]]=glm(formula = vanilla, data = adult_subtrain, family = binomial(link=link_function)) 
+}
+
+for (link_function in link_functions){
+  mods[[paste(link_function, "age_interactions", sep = "-")]]=glm(formula = age_interactions, data = adult_subtrain, family = binomial(link=link_function)) 
+}
+```
+
+```{r}
+briers = lapply(mods, brier_score, adult_select, y_select)
+briers
+```
+
+```{r}
+which_final = which.max(briers)
+which_final
+```
+
+```{r}
+g_final = glm(income ~., data = adult_train, family = binomial(link = logit))
+brier_score(g_final, adult_test, y_test)
+```
