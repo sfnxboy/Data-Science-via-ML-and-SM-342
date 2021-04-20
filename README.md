@@ -6,25 +6,25 @@ Philosophy of modeling and learning using data. Prediction via the ordinary line
 The Labs folder includes PDF and R markdown files for each of the labs.
 
 Lab 1:\
-[Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab01AmirElTabakh.rmd)\
-[PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab01AmirElTabakh.pdf)\
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab01AmirElTabakh.rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab01AmirElTabakh.pdf)
 
 Lab 2:\
-[Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab02AmirElTabakh.Rmd)\
-[PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/342%20Lab2.pdf)\
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab02AmirElTabakh.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/342%20Lab2.pdf)
 
 Lab 3:\
-[Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab03AmirElTabakh.Rmd)\
-[PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/342_Lab_3.pdf)\
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab03AmirElTabakh.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/342_Lab_3.pdf)
 
 Lab 4:\
-[Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)\
-[PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)\
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)
 
 Lab 5:\
-[Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.Rmd)\
-[PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.pdf)\
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.pdf)
 
 Lab 6:\
-[Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.Rmd)\
-[PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.pdf)
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.pdf)
