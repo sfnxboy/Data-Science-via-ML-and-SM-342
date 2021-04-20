@@ -19,7 +19,7 @@ Lab 3:
 
 Lab 4:
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)
-- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir-ElTabakh.pdf)
 
 Lab 5:
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.Rmd)
