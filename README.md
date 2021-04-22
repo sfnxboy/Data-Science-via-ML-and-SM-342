@@ -28,3 +28,7 @@ Lab 5:
 Lab 6:
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.pdf)
+
+Lab 7:
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab07.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab07.pdf)
