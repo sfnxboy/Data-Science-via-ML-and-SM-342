@@ -91,7 +91,7 @@ Test the time difference between these functions for `n = 1000` and `Nvec = 100,
 pacman::p_load(microbenchmark)
 
 n <- 1000
-Nvec <- c(100, 200, 300, 400, 500)
+Nvec <- c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
 time_r <- c()
 time_cpp <- c()
 for (i in 1:length(Nvec)){
@@ -121,19 +121,19 @@ Let `Nvec = 10000` and vary `n` to be 10, 100, 1000. Plot the density of angles 
 ```{r}
 Nvec = 1000
 X <- c()
-for (i in 1:5){
+for (i in 1:50){
   x <- rnorm(Nvec)
   X <- cbind(X, x)
 }
 ang1 <- all_angles(X)
 X <- c()
-for (i in 1:20){
+for (i in 1:100){
   x <- rnorm(Nvec)
   X <- cbind(X, x)
 }
 ang2 <- all_angles(X)
 X <- c()
-for (i in 1:50){
+for (i in 1:200){
   x <- rnorm(Nvec)
   X <- cbind(X, x)
 }
@@ -141,11 +141,13 @@ ang3 <- all_angles(X)
 
 ggplot() + 
   geom_density(aes(x = ang1, fill = "red"), alpha = .4) +
-  geom_density(aes(x = ang2, fill = "blue"), alpha = .4) +
+  geom_density(aes(x = ang2, fill = "yellow"), alpha = .4) +
   geom_density(aes(x = ang3, fill = "green"), alpha = .4) +
-  scale_fill_discrete(labels = c("n=5", "n=20", "n=50")) +
+  scale_fill_discrete(labels = c("n=50", "n=100", "n=200")) +
   ylab("Density") +
-  ylab("")
+  my_ggp +                                                           # Remove axis labels & ticks
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
 ```
 
 Write an R function `nth_fibonnaci` that finds the nth Fibonnaci number via recursion but allows you to specify the starting number. For instance, if the sequence started at 1, you get the familiar 1, 1, 2, 3, 5, etc. But if it started at 0.01, you would get 0.01, 0.01, 0.02, 0.03, 0.05, etc.
@@ -173,7 +175,7 @@ nth_fibonacci_cpp(8, 1)
 Time the difference in these functions for n = 100, 200, ...., 1500 while starting the sequence at the smallest possible floating point value in R. Store the results in a matrix.
 
 ```{r}
-n = 20
+n = 50
 
 time_r <- c()
 time_cpp <- c()
@@ -541,39 +543,32 @@ y_test = y[test_indices]
 X_train = X[train_indices,]
 y_train = y[train_indices]
 
-modv = lm(y_train ~ ., data.frame(X_train))
-yhat = predict(modv, data.frame(X_train))
+mod = lm(y_train ~ ., data.frame(X_train))
+is_Rsq = summary(mod)$r.squared #in-sample R^2
+is_RMSE = sqrt(mean((mod$residuals)^2)) #in sample RMSE
 
-y_bar = sum(y)/n
-e = y - yhat
-SSE = sum(e^2)
-SST = sum((y - y_bar)^2)
-MSE = SSE / (n-2)
-RMSE = sqrt(MSE)
-Rsq = 1 - (SSE/SST)
+y_hat_oos = predict(mod, data.frame(X_test))
+oos_residuals = y_test - y_hat_oos #oos e's
+oos_Rsq = 1 - sum(oos_residuals^2) / sum((y_test - mean(y_test))^2) #oos R^2
+oos_RMSE = sqrt(mean((oos_residuals)^2)) #oos RMSE
 
-metrics = list("y_bar" = y_bar, "SSE" = SSE, "SST" = SST, "RMSE" = RMSE, "Rsq" = Rsq)
-metrics
+validations = data.frame(Metric = c("In Sample R-squared:", "In Sample Standard Error:",
+                                     "OOS R-squared:", "OOS Standard Error:"),
+                         Value = c(is_Rsq, is_RMSE, oos_Rsq, oos_RMSE))
+validations
 ```
 
 Assess your level of success at this endeavor.
 
-$y_bar
-[1] 75.61404
 
-$SSE
-[1] 230023.3
+Metric                    Value
+<chr>                     <dbl>
+In Sample R-squared:	    0.9767775			
+In Sample RMSE:	          5.2338984			
+OOS R-squared:          	0.9655298			
+OOS RMSE:	                6.0078328	
 
-$SST
-[1] 133257
-
-$RMSE
-[1] 45.31864
-
-$Rsq
-[1] -0.7261624
-
-These are the metrics the model achieved after a first run. The objective was to predict the maximum wind speed of a storm based on a few causal features. The model could predict the maximum wind speed of a storm with a margin of +- 45.3 miles per hour. Considering the storms can range with wind speeds between 15 and 160 miles per hour, for the model to make predictions with such a margin makes this an inadequate model. The model achieved an Rsq score of -0.72 with only 5 features, meaning the features are not explaining the variance within y well at all. This model is clearly poor at its task.
+These are the metrics the model achieved after a first run. The objective was to predict the maximum wind speed of a storm based on a few causal features. According to the out of sample RMSE metric, the model could predict the maximum wind speed of a storm with a margin of +- 6.00 knots. Considering the storms can range with wind speeds between 15 and 160 knots, for the model to make predictions with such a margin makes this an adequate model. The model achieved an Rsq score of 0.97 with only 5 features, meaning the features are explaining the variance within y very well. This model is clearly a very good model. To calculate more accurate metrics we could cross validate, I will not because I am lazy.
 
 # The Forward Stepwise Procedure for Probability Estimation Models
 
@@ -581,7 +576,7 @@ These are the metrics the model achieved after a first run. The objective was to
 Set a seed and load the `adult` dataset and remove missingness and randomize the order.
 
 ```{r}
-set.seed(1)
+set.seed(420)
 pacman::p_load_gh("coatless/ucidata")
 data(adult)
 adult = na.omit(adult)
