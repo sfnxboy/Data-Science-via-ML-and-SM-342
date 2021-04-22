@@ -1,0 +1,747 @@
+---
+title: "Lab 7"
+author: "Amir ElTabakh"
+output: pdf_document
+date: "11:59PM April 22, 2021"
+---
+
+#Rcpp 
+
+We will get some experience with speeding up R code using C++ via the `Rcpp` package.
+
+First, clear the workspace and load the `Rcpp` package.
+
+```{r}
+pacman::p_load(Rcpp)
+```
+
+Create a variable `n` to be 10 and a vaiable `Nvec` to be 100 initially. Create a random vector via `rnorm` `Nvec` times and load it into a `Nvec` x `n` dimensional matrix.
+
+```{r}
+n <- 10
+Nvec <- 100
+X = matrix(data=rnorm(Nvec * n), nrow=Nvec)
+head(X)
+```
+
+Write a function `all_angles` that measures the angle between each of the pairs of vectors. You should measure the vector on a scale of 0 to 180 degrees with negative angles coerced to be positive.
+
+```{r}
+angle <- function(u, v){
+  acos(sum(u * v)/sqrt(sum(u^2)*sum(v^2)))
+}
+
+all_angles <- function(X) {
+  A = matrix(NA, nrow = nrow(X), ncol = nrow(X))
+  for(i in 1:(nrow(X) - 1)){
+    for(j in (i+1):nrow(X)){
+      A[i,j] = angle(X[i,], X[j,]) * (180/pi)
+    }
+  }
+  A
+}
+
+#all_angles(X)
+```
+
+Plot the density of these angles.
+
+```{r}
+pacman::p_load(ggplot2)
+ggplot(data.frame(angles = c(all_angles(X)))) +
+  aes(x = angles) + 
+  geom_density()
+```
+
+Write an Rcpp function `all_angles_cpp` that does the same thing. Use an IDE if you want, but write it below in-line.
+
+```{r}
+cppFunction('
+  NumericMatrix all_angles_cpp(NumericMatrix X) {
+    int n = X.nrow();
+    int p = X.ncol();
+    NumericMatrix A(n, n);
+    std::fill(A.begin(), A.end(), NA_REAL);
+    for (int i_1 = 0; i_1 < (n - 1); i_1++){
+      //Rcout << "computing for row #: " << (i_1 + 1) << "\\n";
+      for (int i_2 = i_1 + 1; i_2 < n; i_2++){
+        double sum_sqd_u = 0;
+        double sum_sqd_v = 0;
+        double sum_u_v = 0;
+        for (int j = 0; j < p; j++){
+          sum_sqd_u += pow(X(i_1, j), 2);
+          sum_sqd_v += pow(X(i_2, j), 2);
+          sum_u_v = X(i_1, j) * X(i_2, j);
+          //acos(sum(u * v)/sqrt(sum(u^2)*sum(v^2)))
+          acos(sum_u_v/sqrt(sum_sqd_u * sum_sqd_v)) * (180/M_PI);
+        }
+        A(i_1, i_2) = acos(sum_u_v/sqrt(sum_sqd_u * sum_sqd_v)) * (180/M_PI);
+      }
+    }
+    return A;
+  }
+  ')
+
+#all_angles_cpp(X)
+```
+
+Test the time difference between these functions for `n = 1000` and `Nvec = 100, 500, 1000, 5000` using the package `microbenchmark`.  Store the results in a matrix with rows representing `Nvec` and two columns for base R and Rcpp.
+
+```{r}
+pacman::p_load(microbenchmark)
+
+n <- 1000
+Nvec <- c(100, 200, 300, 400, 500)
+time_r <- c()
+time_cpp <- c()
+for (i in 1:length(Nvec)){
+  X <- c()
+  for (j in 1:n){
+    x <- rnorm(Nvec[i])
+    X <- cbind(X, x)
+  }
+  time_r <- c(time_r, mean(microbenchmark(angles_r = all_angles(X), times = 3, unit = "s")$time))
+  time_cpp <- c(time_cpp, mean(microbenchmark(angles_cpp = all_angles_cpp(X), times = 3, unit = "s")$time))
+}
+```
+
+Plot the divergence of performance (in log seconds) over n using a line geometry. Use two different colors for the R and CPP functions. Make sure there's a color legend on your plot. We will see later how to create "long" matrices that make such plots easier.
+
+```{r}
+pacman::p_load(ggplot2)
+ggplot() +
+  geom_line(aes(x = Nvec, y = log(time_r), col = "timer")) +
+  geom_line(aes(x = Nvec, y = log(time_cpp), col = "timecpp")) +
+  xlab("Value of n") +
+  ylab("Time in Seconds")
+```
+
+Let `Nvec = 10000` and vary `n` to be 10, 100, 1000. Plot the density of angles for all three values of `n` on one plot using color to signify `n`. Make sure you have a color legend. This is not easy.
+
+```{r}
+Nvec = 1000
+X <- c()
+for (i in 1:5){
+  x <- rnorm(Nvec)
+  X <- cbind(X, x)
+}
+ang1 <- all_angles(X)
+X <- c()
+for (i in 1:20){
+  x <- rnorm(Nvec)
+  X <- cbind(X, x)
+}
+ang2 <- all_angles(X)
+X <- c()
+for (i in 1:50){
+  x <- rnorm(Nvec)
+  X <- cbind(X, x)
+}
+ang3 <- all_angles(X)
+
+ggplot() + 
+  geom_density(aes(x = ang1, fill = "red"), alpha = .4) +
+  geom_density(aes(x = ang2, fill = "blue"), alpha = .4) +
+  geom_density(aes(x = ang3, fill = "green"), alpha = .4) +
+  scale_fill_discrete(labels = c("n=5", "n=20", "n=50")) +
+  ylab("Density") +
+  ylab("")
+```
+
+Write an R function `nth_fibonnaci` that finds the nth Fibonnaci number via recursion but allows you to specify the starting number. For instance, if the sequence started at 1, you get the familiar 1, 1, 2, 3, 5, etc. But if it started at 0.01, you would get 0.01, 0.01, 0.02, 0.03, 0.05, etc.
+
+```{r}
+nth_fibonacci <- function(n, start){
+  if (n == 1 | n == 2) return(start)
+  else return(nth_fibonacci(n-1, start) + nth_fibonacci(n-2, start))
+}
+nth_fibonacci(8, 1)
+```
+
+Write an Rcpp function `nth_fibonnaci_cpp` that does the same thing. Use an IDE if ou want, but write it below in-line.
+
+```{r}
+cppFunction(
+  'double nth_fibonacci_cpp(int n, double start){
+    if (n == 1 || n == 2) return start;
+    else return (nth_fibonacci_cpp(n-1, start) + nth_fibonacci_cpp(n-2, start));
+  }'
+)
+nth_fibonacci_cpp(8, 1)
+```
+
+Time the difference in these functions for n = 100, 200, ...., 1500 while starting the sequence at the smallest possible floating point value in R. Store the results in a matrix.
+
+```{r}
+n = 20
+
+time_r <- c()
+time_cpp <- c()
+
+for (i in 1:n){
+  time_r <- c(time_r, mean(microbenchmark(fib_r = nth_fibonacci(i, .Machine$double.xmin), times = 3, unit = "s")$time))
+  time_cpp <- c(time_cpp, mean(microbenchmark(fib_cpp = nth_fibonacci_cpp(i, .Machine$double.xmin), times = 3, unit = "s")$time))
+}
+```
+
+Plot the divergence of performance (in log seconds) over n using a line geometry. Use two different colors for the R and CPP functions. Make sure there's a color legend on your plot.
+
+```{r}
+ggplot() +
+  geom_line(aes(x = 1:n, y = log(time_r), col = "time_r")) +
+  geom_line(aes(x = 1:n, y = log(time_cpp), col = "time_cpp")) +
+  xlab("Number of iterations in Fib function") +
+  ylab("Time in Seconds")
+```
+
+
+# Data Wrangling / Munging / Carpentry
+
+Throughout this assignment you can use either the `tidyverse` package suite or `data.table` to answer but not base R. You can mix `data.table` with `magrittr` piping if you wish but don't go back and forth between `tbl_df`'s and `data.table` objects.
+
+```{r}
+pacman::p_load(tidyverse, magrittr, data.table)
+
+```
+
+Load the `storms` dataset from the `dplyr` package and investigate it using `str` and `summary` and `head`. Which two columns should be converted to type factor? Do so below.
+
+```{r}
+data(storms)
+head(storms)
+```
+
+Reorder the columns so name is first, status is second, category is third and the rest are the same.
+
+```{r}
+storms %<>%
+  select(name, status, category, everything())
+```
+
+Find a subset of the data of storms only in the 1970's.
+
+```{r}
+storms %>%
+  filter(year >= 1970 & year < 1980)
+```
+
+Find a subset of the data of storm observations only with category 4 and above and wind speed 100MPH and above.
+
+```{r}
+storms %>%
+  filter(category >= 4 & wind >= 100)
+```
+
+Create a new feature `wind_speed_per_unit_pressure`.
+
+```{r}
+storms %<>%
+  mutate(wind_speed_per_unit_pressure = wind/pressure)
+```
+
+Create a new feature: `average_diameter` which averages the two diameter metrics. If one is missing, then use the value of the one that is present. If both are missing, leave missing.
+
+```{r}
+storms %<>% 
+  mutate(average_diameter = ifelse(!is.na(ts_diameter) & !is.na(hu_diameter), (ts_diameter + hu_diameter) / 2,
+                                   ifelse(is.na(ts_diameter), hu_diameter,
+                                   ifelse(is.na(hu_diameter), ts_diameter, NA))))
+```
+
+
+For each storm, summarize the maximum wind speed. "Summarize" means create a new dataframe with only the summary metrics you care about.
+
+```{r}
+storms %>%
+  group_by(name) %>%
+  summarize(maximum_wind_speed = max(wind, na.rm = TRUE))
+```
+
+Order your dataset by maximum wind speed storm but within the rows of storm show the observations in time order from early to late.
+
+```{r}
+storms %>%
+  group_by(name) %>%
+  mutate(maximum_wind_by_storm = max(wind, na.rm = TRUE)) %>%
+  select(name, maximum_wind_by_storm, everything()) %>%
+  arrange(maximum_wind_by_storm, year, month, day, hour)
+```
+
+Find the strongest storm by wind speed per year.
+
+```{r}
+storms %>%
+  group_by(year) %>%
+  arrange(year, desc(wind)) %>%
+  slice(1) %>%
+  select(name, year, wind)
+```
+
+For each named storm, find its maximum category, wind speed, pressure and diameters. Do not allow the max to be NA (unless all the measurements for that storm were NA).
+
+```{r}
+storms %>%
+  group_by(name) %>%
+  summarize(max_category = max(category),
+            max_wind_speed = max(wind),
+            max_pressure = max(pressure),
+            max_ts_diam = max(ts_diameter),
+            max_hu_diam = max(hu_diameter)) %>% 
+  na.omit()
+```
+
+
+For each year in the dataset, tally the number of storms. "Tally" is a fancy word for "count the number of". Plot the number of storms by year. Any pattern?
+
+There have been more storms more recently.
+
+```{r}
+pacman::p_load(ggplot2)
+
+storms %>% 
+  group_by(year) %>% 
+  summarize(n_storms = n()) %>% 
+  ggplot() +
+  geom_point(aes(y = n_storms, x = year))
+
+```
+
+For each year in the dataset, tally the storms by category.
+
+```{r}
+storms %>% 
+  group_by(year, category) %>% 
+  summarize(num_storms = n_distinct(name))
+```
+
+For each year in the dataset, find the maximum wind speed per status level.
+
+```{r}
+storms %>% 
+  group_by(year, status) %>% 
+  summarize(max_wind = max(wind))
+```
+
+For each storm, summarize its average location in latitude / longitude coordinates.
+
+```{r}
+storms %>% 
+  group_by(name) %>% 
+  summarize(avg_lat = mean(lat), avg_long = mean(long))
+```
+
+For each storm, summarize its duration in number of hours (to the nearest 6hr increment).
+
+```{r}
+storms %>%
+  group_by(name) %>%
+  mutate(duration = (n()-1)*6) %>%
+  select(name, duration) %>%
+  distinct
+
+```
+
+For storm in a category, create a variable `storm_number` that enumerates the storms 1, 2, ... (in date order).
+
+```{r}
+storms %>%
+  group_by(category, name) %>%
+  slice(1) %>%
+  group_by(category) %>%
+  mutate(storm_number = dense_rank(paste(year, as.numeric(month), day))) %>%
+  select(category, storm_number, year, month, day, name) %>%
+  distinct %>%
+  arrange(category, storm_number)
+
+```
+
+Convert year, month, day, hour into the variable `timestamp` using the `lubridate` package. Although the new package `clock` just came out, `lubridate` still seems to be standard. Next year I'll probably switch the class to be using `clock`.
+
+```{r}
+pacman::p_load(lubridate)
+
+storms %<>% 
+  mutate(timestamp = make_datetime(year, month, day, hour)) %>% 
+  select(timestamp, everything())
+```
+
+Using the `lubridate` package, create new variables `day_of_week` which is a factor with levels "Sunday", "Monday", ... "Saturday" and `week_of_year` which is integer 1, 2, ..., 52.
+
+```{r}
+storms %<>% 
+  mutate(day_of_week = weekdays(timestamp),
+         week_of_year = week(timestamp))
+```
+
+For each storm, summarize the day in which is started in the following format "Friday, June 27, 1975".
+
+```{r}
+storms %>% 
+  group_by(name) %>% 
+  summarize(start_date = min(timestamp)) %>% 
+  mutate(start_date = paste(weekdays(start_date), 
+                            paste(months(start_date), day(start_date), sep = " "),
+                            year(start_date), sep = ", "))
+```
+
+Create a new factor variable `decile_windspeed` by binning wind speed into 10 bins.
+
+```{r}
+bins <- 0:10
+
+storms %<>%
+  mutate(decile_windspeed = factor(ntile(wind, 10)))
+```
+
+Create a new data frame `serious_storms` which are category 3 and above hurricanes.
+
+```{r}
+serious_storms <- storms %>% 
+  filter(category >= 3)
+
+serious_storms
+```
+
+In `serious_storms`, merge the variables lat and long together into `lat_long` with values `lat / long` as a string.
+
+```{r}
+serious_storms %<>%
+  unite(lat_long, lat, long, sep = " / ")
+```
+
+Let's return now to the original storms data frame. For each category, find the average wind speed, pressure and diameters (do not count the NA's in your averaging).
+
+```{r}
+storms %>% 
+  group_by(category) %>% 
+  summarize(avg_wind_speed = mean(wind),
+            avg_pressure = mean(pressure),
+            avg_ts_diam = mean(ts_diameter, na.rm = TRUE),
+            avg_hu_diam = mean(hu_diameter, na.rm = TRUE))
+```
+
+For each named storm, find its maximum category, wind speed, pressure and diameters (do not allow the max to be NA) and the number of readings (i.e. observations).
+
+```{r}
+storms %<>% 
+  filter(!is.na(ts_diameter), !is.na(hu_diameter)) %>% 
+  group_by(name) %>% 
+  mutate(max_category = max(category),
+            max_wind = max(wind),
+            max_pressure = max(pressure),
+            max_ts_diam = max(ts_diameter),
+            max_hu_diam = max(hu_diameter))
+```
+
+Calculate the distance from each storm observation to Miami in a new variable `distance_to_miami`. This is very challenging. You will need a function that computes distances from two sets of latitude / longitude coordinates. 
+
+```{r}
+MIAMI_LAT_LONG_COORDS = c(25.7617, -80.1918)
+
+distance <- function(lat1, long1, lat2, long2){
+  
+  lat1 = lat1 * 180/pi
+  lat2 = lat2 * 180/pi
+  long1 = long1 * 180/pi
+  long2 = long2 * 180/pi
+  # Haversine formula
+  a = sin(lat2 - lat1 / 2)^2 + (cos(lat2) * cos(lat1)) * sin(long2 - long1 / 2)^2 
+  b = 2 * atan2(sqrt(a), sqrt(1 - a)) 
+  distance = 6373.0 * b # Multiplying by radius of earth in KM
+  return(distance)
+}
+
+
+
+storms %>% 
+  mutate(distance_to_miami = distance(lat, long, MIAMI_LAT_LONG_COORDS[1], MIAMI_LAT_LONG_COORDS[2]))
+```
+For each storm observation, use the function from the previous question to calculate the distance it moved since the previous observation.
+
+```{r}
+storms %<>% 
+  group_by(name) %>%
+  mutate(dist_from_prev = ifelse(name != lag(name), 0, distance(lat, long, lag(lat), lag(long)))) %>% 
+  mutate(dist_from_prev = ifelse(is.na(dist_from_prev), 0, dist_from_prev))
+
+head(storms)
+```
+
+For each storm, find the total distance it moved over its observations and its total displacement. "Distance" is a scalar quantity that refers to "how much ground an object has covered" during its motion. "Displacement" is a vector quantity that refers to "how far out of place an object is"; it is the object's overall change in position.
+
+```{r}
+storms %>% 
+  group_by(name) %>% 
+  summarize(Distance = sum(dist_from_prev),
+            Displacement = paste(round(last(lat) - first(lat), 2), round(last(long) - first(long), 2), sep = " / "))
+
+```
+
+For each storm observation, calculate the average speed the storm moved in location.
+
+```{r}
+storms %<>%
+  mutate(speed = dist_from_prev / 6)
+
+head(storms)
+```
+
+For each storm, calculate its average ground speed (how fast its eye is moving which is different from windspeed around the eye).
+
+```{r}
+storms %>% 
+  group_by(name) %>%
+  summarize(avg_ground_speed = mean(speed))
+
+head(storms)
+```
+
+Is there a relationship between average ground speed and maximum category attained? Use a dataframe summary (not a regression).
+
+```{r}
+speed_and_category <- storms %>% 
+  group_by(name) %>%
+  summarize(avg_ground_speed = mean(speed), maximum_category = as.numeric(max(category)))
+
+cor(speed_and_category[,2], speed_and_category[,3])
+```
+
+Now we want to transition to building real design matrices for prediction. This is more in tune with what happens in the real world. Large data dump and you convert it into $X$ and $y$ how you see fit.
+
+Suppose we wish to predict the following: given the first three readings of a storm, can you predict its maximum wind speed? Identify the `y` and identify which features you need $x_1, ... x_p$ and build that matrix with `dplyr` functions. This is not easy, but it is what it's all about. Feel free to "featurize" as creatively as you would like. You aren't going to overfit if you only build a few features relative to the total 198 storms.
+
+```{r}
+storms_data = storms %>%
+  group_by(name) %>% # Because we only want one data point per storm
+  summarize(y = max(wind), # Dependent variable
+            max_category = max(category), # Independent variables
+            pressure = max(pressure),
+            speed = max(speed),
+            total_distance_traveled = sum(dist_from_prev),
+            status = last(status)) %>%
+  select(-name) # Remove name feature because it is meaningless
+
+head(storms_data)
+```
+
+Fit your model. Validate it. 
+ 
+```{r}
+# OLS model
+n = nrow(storms_data)
+K = 5 # 1/5 of data will be set to the testing set
+test_indices = sample(1 : n, 1 / K * n)
+train_indices = setdiff(1:n, test_indices)
+
+X = select(storms_data, -y)
+y = storms_data$y
+
+X_test = X[test_indices,]
+y_test = y[test_indices]
+X_train = X[train_indices,]
+y_train = y[train_indices]
+
+modv = lm(y_train ~ ., data.frame(X_train))
+yhat = predict(modv, data.frame(X_train))
+
+y_bar = sum(y)/n
+e = y - yhat
+SSE = sum(e^2)
+SST = sum((y - y_bar)^2)
+MSE = SSE / (n-2)
+RMSE = sqrt(MSE)
+Rsq = 1 - (SSE/SST)
+
+metrics = list("y_bar" = y_bar, "SSE" = SSE, "SST" = SST, "RMSE" = RMSE, "Rsq" = Rsq)
+metrics
+```
+
+Assess your level of success at this endeavor.
+
+$y_bar
+[1] 75.61404
+
+$SSE
+[1] 230023.3
+
+$SST
+[1] 133257
+
+$RMSE
+[1] 45.31864
+
+$Rsq
+[1] -0.7261624
+
+These are the metrics the model achieved after a first run. The objective was to predict the maximum wind speed of a storm based on a few causal features. The model could predict the maximum wind speed of a storm with a margin of +- 45.3 miles per hour. Considering the storms can range with wind speeds between 15 and 160 miles per hour, for the model to make predictions with such a margin makes this an inadequate model. The model achieved an Rsq score of -0.72 with only 5 features, meaning the features are not explaining the variance within y well at all. This model is clearly poor at its task.
+
+# The Forward Stepwise Procedure for Probability Estimation Models
+
+
+Set a seed and load the `adult` dataset and remove missingness and randomize the order.
+
+```{r}
+set.seed(1)
+pacman::p_load_gh("coatless/ucidata")
+data(adult)
+adult = na.omit(adult)
+adult = adult[sample(1 : nrow(adult)), ]
+```
+
+Copy from the previous lab all cleanups you did to this dataset.
+
+```{r}
+adult$fnlwgt = NULL
+
+adult$marital_status = as.character(adult$marital_status)
+adult$marital_status = ifelse(adult$marital_status == "Married-AF-spouse" | adult$marital_status == "Married-civ-spouse", "Married", adult$marital_status)
+adult$marital_status = as.factor(adult$marital_status)
+
+adult$education = as.character(adult$education)
+adult$education = ifelse(adult$education == "1st-4th" | adult$education == "Preschool", "<=4th", adult$education)
+adult$education = as.factor(adult$education)
+adult$education = NULL
+
+tab = sort(table(adult$native_country))
+adult$native_country = as.character(adult$native_country)
+adult$native_country= ifelse(adult$native_country %in% names(tab[tab<50]), "Other", adult$native_country)
+adult$native_country= as.factor(adult$native_country)
+
+adult$worktype = paste(adult$occupation, adult$workclass, sep = ":")
+tab_worktype = sort(table(adult$worktype))
+adult$occupation = NULL
+adult$workclass = NULL
+
+adult$worktype = as.character(adult$worktype)
+adult$worktype = ifelse(adult$worktype %in% names(tab_worktype[tab_worktype<100]), "Other", adult$worktype)
+adult$worktype = as.factor(adult$worktype)
+
+adult$status = paste(as.character(adult$relationship), as.character(adult$marital_status), sep = ":")
+adult$status = as.character(adult$status)
+tab_status = sort(table(adult$status))
+adult$relationship = NULL
+adult$marital_status = NULL
+adult$status = as.factor(adult$status)
+```
+
+
+We will be doing model selection. We will split the dataset into 3 distinct subsets. Set the size of our splits here. For simplicitiy, all three splits will be identically sized. We are making it small so the stepwise algorithm can compute quickly. If you have a faster machine, feel free to increase this.
+
+```{r}
+Nsplitsize = 1000
+```
+
+Now create the following variables: `Xtrain`, `ytrain`, `Xselect`, `yselect`, `Xtest`, `ytest` with `Nsplitsize` observations. Binarize the y values. 
+
+```{r}
+Xtrain = adult[1 : Nsplitsize, ]
+Xtrain$income = NULL
+ytrain = ifelse(adult[1 : Nsplitsize, "income"] == ">50K", 1, 0)
+Xselect = adult[(Nsplitsize + 1) : (2 * Nsplitsize), ]
+Xselect$income = NULL
+yselect = ifelse(adult[(Nsplitsize + 1) : (2 * Nsplitsize), "income"] ==">50K", 1, 0)
+Xtest = adult[(2 * Nsplitsize + 1) : (3 * Nsplitsize), ]
+Xtest$income = NULL
+ytest = ifelse(adult[(2 * Nsplitsize + 1) : (3 * Nsplitsize), "income"] == ">50K", 1, 0)
+```
+
+Fit a vanilla logistic regression on the training set.
+
+```{r}
+logistic_mod = glm(ytrain ~ ., Xtrain, family = binomial(link = logit))
+```
+
+and report the log scoring rule, the Brier scoring rule.
+
+```{r}
+p_hat_train = predict(logistic_mod, Xtrain, type = 'response')
+
+#in sample log scoring rule
+mean(ytrain * log(p_hat_train) + (1 - ytrain) * log(1 - p_hat_train))
+#in sample Brier scoring rule
+mean(-(ytrain - p_hat_train)^2)
+```
+
+We will be doing model selection using a basis of linear features consisting of all first-order interactions of the 14 raw features (this will include square terms as squares are interactions with oneself). 
+
+Create a model matrix from the training data containing all these features. Make sure it has an intercept column too (the one vector is usually an important feature). Cast it as a data frame so we can use it more easily for modeling later on. We're going to need those model matrices (as data frames) for both the select and test sets. So make them here too (copy-paste). Make sure their dimensions are sensible.
+
+```{r}
+Xmm_train = data.frame(model.matrix( ~ . , Xtrain))
+Xmm_select = data.frame(model.matrix( ~ . , Xselect))
+Xmm_test = data.frame(model.matrix( ~ . , Xtest))
+
+dim(Xmm_train)
+dim(Xmm_select)
+dim(Xmm_test)
+```
+
+Write code that will fit a model stepwise. You can refer to the chunk in the practice lecture. Use the negative Brier score to do the selection. The negative of the Brier score is always positive and lower means better making this metric kind of like s_e so the picture will be the same as the canonical U-shape for oos performance. 
+
+Run the code and hit "stop" when you begin to the see the Brier score degrade appreciably oos. Be patient as it will wobble.
+
+```{r}
+pacman::p_load(Matrix)
+p_plus_one = ncol(Xmm_train)
+predictor_by_iteration = c() #keep a growing list of predictors by iteration
+in_sample_brier_by_iteration = c() #keep a growing list of briers by iteration
+oos_brier_by_iteration = c() #keep a growing list of briers by iteration
+i = 1
+
+repeat {
+
+  #get all predictors left to try
+  all_briers = array(NA, p_plus_one) #record all possibilities
+  for (j_try in 1 : p_plus_one){
+    if (j_try %in% predictor_by_iteration){
+      next 
+    }
+    Xmm_sub = Xmm_train[, c(predictor_by_iteration, j_try), drop = FALSE]
+    logistic_mod = suppressWarnings(glm(ytrain ~ ., Xmm_sub, family = "binomial"))
+    phat_train = suppressWarnings(predict(logistic_mod, Xmm_sub, type = 'response'))
+    all_briers[j_try] = -mean(-(ytrain - phat_train)^2)
+  }
+  j_star = which.max(all_briers)
+  predictor_by_iteration = c(predictor_by_iteration, j_star)
+  in_sample_brier_by_iteration = c(in_sample_brier_by_iteration, all_briers[j_star])
+  
+  #now let's look at oos
+  Xmm_sub = Xmm_train[, predictor_by_iteration, drop = FALSE]
+
+    logistic_mod = suppressWarnings(glm(ytrain ~ ., Xmm_sub, family = "binomial"))
+    phat_train = suppressWarnings(predict(logistic_mod, Xmm_sub, type = 'response'))
+    all_briers[j_try] = -mean(-(ytrain - phat_train)^2)
+    
+    phat_select = suppressWarnings(predict(logistic_mod, Xmm_select[, predictor_by_iteration, drop = FALSE], type = 'response'))
+    
+    oos_brier = -mean(-(yselect - phat_select)^2)
+    oos_brier_by_iteration = c(oos_brier_by_iteration, oos_brier)
+  
+  cat("i =", i, "in-sample_brier =", all_briers[j_star], "oos_brier =", oos_brier, "\n   predictor added:", colnames(Xmm_train)[j_star], "\n")
+  
+  i = i + 1
+  
+  if (i > Nsplitsize || i > p_plus_one){
+    break
+  }
+}
+```
+
+
+Plot the in-sample and oos (select set) Brier score by $p$. Does this look like what's expected?
+
+```{r}
+simulation_results = data.frame(
+  iteration = 1 : length(in_sample_brier_by_iteration),
+  in_sample_brier_by_iteration = in_sample_brier_by_iteration,
+  oos_brier_by_iteration = oos_brier_by_iteration
+)
+
+pacman::p_load(latex2exp)
+ggplot(simulation_results) + 
+  geom_line(aes(x = iteration, y = in_sample_brier_by_iteration), color = "red") +
+  geom_line(aes(x = iteration, y = oos_brier_by_iteration), color = "blue") + 
+  #ylim(0, max(c(simulation_results$in_sample_brier_by_iteration, simulation_results$oos_brier_by_iteration)))
+  ylab(TeX("$brier score$"))
+
+```
