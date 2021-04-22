@@ -5,30 +5,30 @@ Philosophy of modeling and learning using data. Prediction via the ordinary line
 
 The Labs folder includes PDF and R markdown files for each of the labs.
 
-Lab 1:
+Lab 1: The Basics of R
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab01AmirElTabakh.rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab01AmirElTabakh.pdf)
 
-Lab 2:
+Lab 2: Manipulating Matrices
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab02AmirElTabakh.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/342%20Lab2.pdf)
 
-Lab 3:
+Lab 3: Support Vector Machine vs. Perceptron
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab03AmirElTabakh.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/342_Lab_3.pdf)
 
-Lab 4:
+Lab 4: Ordinary Least Squares (OLS) model and Model Validation
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir%20ElTabakh.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab_04_Amir-ElTabakh.pdf)
 
-Lab 5:
+Lab 5: The Inner Mechanics of the OLS model
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab05AmirElTabakh.pdf)
 
-Lab 6:
+Lab 6: Getting Familiar with ggplot2
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab06.pdf)
 
-Lab 7:
+Lab 7: R-C++, Data Wrangling/Munging/Carpentry, The Forward Stepwise Procedure for Probability Estimation Models
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab07.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab07.pdf)
