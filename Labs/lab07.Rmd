@@ -121,19 +121,19 @@ Let `Nvec = 10000` and vary `n` to be 10, 100, 1000. Plot the density of angles 
 ```{r}
 Nvec = 1000
 X <- c()
-for (i in 1:50){
+for (i in 1:10){
   x <- rnorm(Nvec)
   X <- cbind(X, x)
 }
 ang1 <- all_angles(X)
 X <- c()
-for (i in 1:100){
+for (i in 1:50){
   x <- rnorm(Nvec)
   X <- cbind(X, x)
 }
 ang2 <- all_angles(X)
 X <- c()
-for (i in 1:200){
+for (i in 1:100){
   x <- rnorm(Nvec)
   X <- cbind(X, x)
 }
@@ -143,11 +143,9 @@ ggplot() +
   geom_density(aes(x = ang1, fill = "red"), alpha = .4) +
   geom_density(aes(x = ang2, fill = "yellow"), alpha = .4) +
   geom_density(aes(x = ang3, fill = "green"), alpha = .4) +
-  scale_fill_discrete(labels = c("n=50", "n=100", "n=200")) +
+  scale_fill_discrete(labels = c("n=10", "n=50", "n=100")) +
   ylab("Density") +
-  my_ggp +                                                           # Remove axis labels & ticks
-  theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+  xlab("Angle")
 ```
 
 Write an R function `nth_fibonnaci` that finds the nth Fibonnaci number via recursion but allows you to specify the starting number. For instance, if the sequence started at 1, you get the familiar 1, 1, 2, 3, 5, etc. But if it started at 0.01, you would get 0.01, 0.01, 0.02, 0.03, 0.05, etc.
@@ -175,7 +173,7 @@ nth_fibonacci_cpp(8, 1)
 Time the difference in these functions for n = 100, 200, ...., 1500 while starting the sequence at the smallest possible floating point value in R. Store the results in a matrix.
 
 ```{r}
-n = 50
+n = 20
 
 time_r <- c()
 time_cpp <- c()
