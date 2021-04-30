@@ -32,3 +32,7 @@ Lab 6: Getting Familiar with ggplot2
 Lab 7: R-C++, Data Wrangling/Munging/Carpentry, The Forward Stepwise Procedure for Probability Estimation Models
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab07.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab07.pdf)
+
+Lab 8: Probability Estimation and the Confusion Matrix
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab08.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab08.pdf)
