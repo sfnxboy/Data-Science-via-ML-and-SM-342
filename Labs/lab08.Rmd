@@ -1,0 +1,365 @@
+---
+title: "Lab 8"
+author: "Amir ElTabakh"
+output: pdf_document
+date: "11:59PM April 29, 2021"
+---
+
+I want to make some use of my CART package. Everyone please try to run the following:
+
+```{r}
+#if (!pacman::p_isinstalled(YARF)){
+#  pacman::p_install_gh("kapelner/YARF/YARFJARs", ref = "dev")
+#  pacman::p_install_gh("kapelner/YARF/YARF", ref = "dev", force = TRUE)
+#}
+#options(java.parameters = "-Xmx4000m")
+#pacman::p_load(YARF)
+# Keep this cell commented out, it breaks R if you do not have the right software installed.
+```
+
+For many of you it will not work. That's okay.
+
+Throughout this part of this assignment you can use either the `tidyverse` package suite or `data.table` to answer but not base R. You can mix `data.table` with `magrittr` piping if you wish but don't go back and forth between `tbl_df`'s and `data.table` objects.
+
+```{r}
+pacman::p_load(tidyverse, magrittr, data.table)
+```
+
+We will be using the `storms` dataset from the `dplyr` package. Filter this dataset on all storms that have no missing measurements for the two diameter variables, "ts_diameter" and "hu_diameter".
+
+```{r}
+data(storms)
+storms2 <- storms %>% 
+  filter(!is.na(ts_diameter) & !is.na(hu_diameter) & ts_diameter > 0 & hu_diameter > 0)
+
+storms2
+```
+
+From this subset, create a data frame that only has storm, observation period number for each storm (i.e., 1, 2, ..., T) and the "ts_diameter" and "hu_diameter" metrics.
+
+```{r}
+storms2 <- storms2 %>% 
+	select(name, ts_diameter, hu_diameter) %>%
+	group_by(name) %>%
+	mutate(period = row_number())
+
+storms2
+```
+
+Create a data frame in long format with columns "diameter" for the measurement and "diameter_type" which will be categorical taking on the values "hu" or "ts".
+
+```{r}
+storms_long <- pivot_longer(storms2, cols = matches("diameter"), names_to = "diameter")
+storms_long
+```
+
+Using this long-formatted data frame, use a line plot to illustrate both "ts_diameter" and "hu_diameter" metrics by observation period for four random storms using a 2x2 faceting. The two diameters should appear in two different colors and there should be an appropriate legend.
+
+```{r}
+storms_sample = sample(unique(storms2$name), 4)
+storms_sample
+
+pacman::p_load(ggplot2)
+ggplot(data = storms_long %>%
+         filter(name %in% storms_sample)) +
+  geom_line(aes(x = period, y = value, col = diameter)) +
+  facet_wrap(name ~ ., nrow = 2)
+
+```
+
+In this next first part of this lab, we will be joining three datasets in an effort to make a design matrix that predicts if a bill will be paid on time. Clean up and load up the three files. Then I'll rename a few features and then we can examine the data frames:
+
+```{r}
+rm(list = ls())
+pacman::p_load(tidyverse, magrittr, data.table, R.utils)
+bills = fread("https://github.com/kapelner/QC_MATH_342W_Spring_2021/raw/master/labs/bills_dataset/bills.csv.bz2")
+payments = fread("https://github.com/kapelner/QC_MATH_342W_Spring_2021/raw/master/labs/bills_dataset/payments.csv.bz2")
+discounts = fread("https://github.com/kapelner/QC_MATH_342W_Spring_2021/raw/master/labs/bills_dataset/discounts.csv.bz2")
+setnames(bills, "amount", "tot_amount")
+setnames(payments, "amount", "paid_amount")
+head(bills)
+head(payments)
+head(discounts)
+bills = as_tibble(bills)
+payments = as_tibble(payments)
+discounts = as_tibble(discounts)
+```
+
+The unit we care about is the bill. The y metric we care about will be "paid in full" which is 1 if the company paid their total amount (we will generate this y metric later).
+
+Since this is the response, we would like to construct the very best design matrix in order to predict y.
+
+I will create the basic steps for you guys. First, join the three datasets in an intelligent way. You will need to examine the datasets beforehand.
+
+```{r}
+bills_with_payments = left_join(bills, payments, by = c("id" = "bill_id"))
+bills_with_payments_with_discounts = left_join(bills_with_payments, discounts, by = c("discount_id" = "id"))
+bills_with_payments_with_discounts
+```
+
+Now create the binary response metric `paid_in_full` as the last column and create the beginnings of a design matrix `bills_data`. Ensure the unit / observation is bill i.e. each row should be one bill! 
+
+```{r}
+bills_data <- bills_with_payments_with_discounts %>%
+  mutate(tot_amount = if_else(is.na(pct_off), tot_amount, tot_amount*(1 - pct_off/100))) %>%
+  group_by(id) %>%
+  mutate(sum_of_payment_amount = sum(paid_amount)) %>%
+  mutate(paid_in_full = if_else(sum_of_payment_amount >= tot_amount, 1, 0, missing = 0)) %>%
+  slice(1) %>%
+  ungroup()
+
+table(bills_data$paid_in_full, useNA = "always")
+```
+
+How should you add features from transformations (called "featurization")? What data type(s) should they be? Make some features below if you think of any useful ones. Name the columns appropriately so another data scientist can easily understand what information is in your variables.
+
+```{r}
+pacman::p_load("lubridate")
+
+bills_data = bills_data %>%
+  select(-id, -id.y, -num_days, -transaction_date, -pct_off, -days_until_discount, -sum_of_payment_amount, -paid_amount) %>%
+  mutate(num_days_to_pay = as.integer(ymd(due_date) - ymd(invoice_date))) %>%
+  select(-due_date, -invoice_date) %>%
+  mutate(discount_id = as.factor(discount_id)) %>%
+  group_by(customer_id) %>%
+  mutate(bill_num = row_number()) %>%
+  ungroup() %>%
+  select(-customer_id, -discount_id) %>%
+  relocate(paid_in_full, .after = last_col())
+
+bills_data[order(-bills_data$bill_num), ]
+```
+
+Now let's do this exercise. Let's retain 25% of our data for test.
+
+```{r}
+K = 4
+test_indices = sample(1 : nrow(bills_data), round(nrow(bills_data) / K))
+train_indices = setdiff(1 : nrow(bills_data), test_indices)
+bills_data_test = bills_data[test_indices, ]
+bills_data_train = bills_data[train_indices, ]
+```
+
+Now try to build a classification tree model for `paid_in_full` with the features (use the `Xy` parameter in `YARF`). If you cannot get `YARF` to install, use the package `rpart` (the standard R tree package) instead. You will need to install it and read through some documentation to find the correct syntax.
+
+Warning: this data is highly anonymized and there is likely zero signal! So don't expect to get predictive accuracy. The value of the exercise is in the practice. I think this exercise (with the joining exercise above) may be one of the most useful exercises in the entire semester.
+
+```{r}
+#install.packages('rpart')
+pacman::p_load(rpart)
+mod1 = rpart(paid_in_full ~., data = bills_data_train, method = "class")
+mod1
+```
+
+For those of you who installed `YARF`, what are the number of nodes and depth of the tree? 
+
+```{r}
+nrow(mod1$frame) #number of nodes
+```
+
+For those of you who installed `YARF`, print out an image of the tree.
+
+```{r}
+plot(mod1, uniform=TRUE)
+text(mod1, use.n=TRUE, all=TRUE, cex=0.5)
+
+# This line only helps find the depth of the tree if the tree were balanced.
+ceiling(log(nrow(mod1$frame), 2))
+```
+
+Predict on the test set and compute a confusion matrix.
+
+```{r}
+yhat = predict(mod1, bills_data_test, type = c("class"), na.action = na.pass)
+oos_conf_table = table(bills_data_test$paid_in_full, yhat)
+oos_conf_table
+```
+^ Columns are yhats, and the rows are the actuals.
+
+Report the following error metrics: misclassifcation error, precision, recall, F1, FDR, FOR.
+
+```{r}
+n = sum(oos_conf_table)
+fp = oos_conf_table[1, 2]
+fn = oos_conf_table[2, 1]
+tp = oos_conf_table[2, 2]
+tn = oos_conf_table[1, 1]
+num_pred_pos = sum(oos_conf_table[, 2])
+num_pred_neg = sum(oos_conf_table[, 1])
+num_pos = sum(oos_conf_table[2, ])
+num_neg = sum(oos_conf_table[1, ])
+misclassifcation_error = (fn + fp)/n
+cat("Misclassification error", round(misclassifcation_error * 100, 2), "%\n")
+precision = tp / num_pred_pos
+cat("precision", round(precision * 100, 2), "%\n")
+recall = tp / num_pos
+cat("recall", round(recall * 100, 2), "%\n")
+false_discovery_rate = 1 - precision
+cat("false_discovery_rate", round(false_discovery_rate * 100, 2), "%\n")
+false_omission_rate = fn / num_pred_neg
+cat("false_omission_rate", round(false_omission_rate * 100, 2), "%\n")
+F1 = (2 * tp)/(2 * tp + fp + fn)
+cat("F1 score", round(F1 * 100, 2), "%\n")
+```
+
+I believe a good metric to judge this model by in our context is false discovery rate. False discovery rate is defined as the number of times the model predicted an individual would pay their bill and the individual did not pay their bill, over the total number of times the model predicted an individual would pay their bill, or false positives over predicted positives. A false discovery rate of 33.06% means that the model wrongly predicts for an individual to pay back their bill 1 in 3 times. A company might find such a model useless, I judge this is a bad model.
+
+
+There are probability asymmetric costs to the two types of errors. Assign the costs below and calculate oos total cost.
+Its more important that fp stays low, so it costs more to have an fp. I arbitrarily say that 30 false negatives is equivalent to 1 false positive. Its okay to predict someone to not pay and they pay, however its damaging to the business to predict for people to pay and they do not
+
+```{r}
+C_fp <- 30
+C_fn <- 1
+cost = C_fp * fp + C_fn * fn
+cost
+```
+
+We now wish to do asymmetric cost classification. Fit a logistic regression model to this data.
+
+```{r}
+logistic_mod = glm(paid_in_full ~ ., bills_data_train, family = binomial(link = "logit"))
+
+```
+
+Use the function from class to calculate all the error metrics for the values of the probability threshold being 0.001, 0.002, ..., 0.999 in a data frame.
+
+```{r}
+compute_metrics_prob_classifier = function(p_hats, y_true, res = 0.001){
+  #we first make the grid of all prob thresholds
+  p_thresholds = seq(0 + res, 1 - res, by = res) #values of 0 or 1 are trivial
+  
+  #now we create a matrix which will house all of our results
+  performance_metrics = matrix(NA, nrow = length(p_thresholds), ncol = 12)
+  colnames(performance_metrics) = c(
+    "p_th",
+    "TN",
+    "FP",
+    "FN",
+    "TP",
+    "miscl_err",
+    "precision",
+    "recall",
+    "FDR",
+    "FPR",
+    "FOR",
+    "miss_rate"
+  )
+  
+  #now we iterate through each p_th and calculate all metrics about the classifier and save
+  n = length(y_true)
+  for (i in 1 : length(p_thresholds)){
+    p_th = p_thresholds[i]
+    y_hats = factor(ifelse(p_hats >= p_th, 1, 0))
+    confusion_table = table(
+      factor(y_true, levels = c(0, 1)),
+      factor(y_hats, levels = c(0, 1))
+    )
+      
+    fp = confusion_table[1, 2]
+    fn = confusion_table[2, 1]
+    tp = confusion_table[2, 2]
+    tn = confusion_table[1, 1]
+    npp = sum(confusion_table[, 2])
+    npn = sum(confusion_table[, 1])
+    np = sum(confusion_table[2, ])
+    nn = sum(confusion_table[1, ])
+  
+    performance_metrics[i, ] = c(
+      p_th,
+      tn,
+      fp,
+      fn,
+      tp,
+      (fp + fn) / n,
+      tp / npp, #precision
+      tp / np,  #recall
+      fp / npp, #false discovery rate (FDR)
+      fp / nn,  #false positive rate (FPR)
+      fn / npn, #false omission rate (FOR)
+      fn / np   #miss rate
+    )
+  }
+  
+  performance_metrics
+  
+}
+
+y_train = bills_data_train$paid_in_full
+p_hats_train = predict(logistic_mod, bills_data_train, type = "response")
+metric_prob_classifier_tibble_in_sample = compute_metrics_prob_classifier(p_hats_train, y_train) %>% data.table
+
+y_test = bills_data_test$paid_in_full
+p_hats_test = predict(logistic_mod, bills_data_test, type = "response")
+metric_prob_classifier_tibble_oos = compute_metrics_prob_classifier(p_hats_test, y_test) %>% data.table
+```
+
+Calculate the column `total_cost` and append it to this data frame.
+
+```{r}
+C_fp <- 50
+C_fn <- 1
+
+metric_prob_classifier_tibble_in_sample <- metric_prob_classifier_tibble_in_sample %>%
+  mutate(total_cost = (C_fp * FP) + (C_fn * FN))
+
+metric_prob_classifier_tibble_oos <- metric_prob_classifier_tibble_oos %>%
+  mutate(total_cost = (C_fp * FP) + (C_fn * FN))
+```
+
+Which is the winning probability threshold value and the total cost at that threshold?
+
+```{r}
+best_prob_threshold_index_in_sample = which.min(metric_prob_classifier_tibble_in_sample$total_cost)
+best_prob_threshold_metrics_in_sample = metric_prob_classifier_tibble_in_sample[best_prob_threshold_index_in_sample, ]
+
+cat("The total cost of the winning probability threshold in sample is", min(best_prob_threshold_metrics_in_sample$total_cost))
+
+
+best_prob_threshold_index_oos = which.min(metric_prob_classifier_tibble_oos$total_cost)
+best_prob_threshold_metrics_oos = metric_prob_classifier_tibble_oos[best_prob_threshold_index_oos, ]
+
+cat("\n\nThe total cost of the winning probability threshold OOS is", min(best_prob_threshold_metrics_oos$total_cost))
+
+```
+
+Plot an ROC curve and interpret.
+
+```{r}
+pacman::p_load(ggplot2)
+performance_metrics_in_and_oos = rbind(
+    cbind(metric_prob_classifier_tibble_in_sample, data.table(sample = "in")),
+    cbind(metric_prob_classifier_tibble_oos, data.table(sample = "out"))
+)
+
+ggplot(performance_metrics_in_and_oos) +
+  geom_line(aes(x = FPR, y = recall, col = sample)) +
+  geom_abline(intercept = 0, slope = 1, col = "orange") + 
+  coord_fixed() + xlim(0, 1) + ylim(0, 1)
+
+```
+
+The ROC curve can be used to compares the models recall against its false positive rate at various threshold settings. The orange line is the generic model, where the true y values are independent of the false positive rates at all threshold settings. Because the ROC curve is above the generic model curve, we can say that the model performs better than the generic model.
+
+Calculate AUC and interpret.
+
+```{r}
+pacman::p_load(pracma)
+auc_in_sample = -trapz(metric_prob_classifier_tibble_in_sample$FPR, metric_prob_classifier_tibble_in_sample$recall)
+cat("AUC in-sample: ", auc_in_sample)
+
+auc_oos = -trapz(metric_prob_classifier_tibble_oos$FPR, metric_prob_classifier_tibble_oos$recall)
+cat("\n\nAUC OOS: ", auc_oos)
+```
+
+AUC is a metric that gauges the overall fit of a probility estimation model. The area under the generic model curve is exactly 0.5. The area under the OOS curve is about 0.59, that means that it does indeed perform better than the generic model. An AUC greater that 0.5 indicates that the model has predictive power. AUC's closer to 1 indicate a better model.
+
+Plot a DET curve and interpret.
+
+```{r}
+ggplot(performance_metrics_in_and_oos) +
+  geom_line(aes(x = FDR, y = miss_rate, col = sample)) +
+  coord_fixed() + xlim(0, 1) + ylim(0, 1)
+```
+
+The DET is traced out by varying p_th in [0,1]. Thhis graph allows you to visually see the tradeoff of the two errors (FOR and FDR) that are critical to prediction. In this case the point on the curve will match the p_th value found above with its FDR and FOR values.
