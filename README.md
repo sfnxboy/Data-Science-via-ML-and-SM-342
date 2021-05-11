@@ -36,3 +36,7 @@ Lab 7: R-C++, Data Wrangling/Munging/Carpentry, The Forward Stepwise Procedure f
 Lab 8: Probability Estimation and the Confusion Matrix
 - [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab08.Rmd)
 - [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/lab08.pdf)
+
+Lab 9: Trees, Bagged Trees, and Random Forests
+- [Code](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab09.Rmd)
+- [PDF](https://github.com/sfnxboy/Data-Science-via-ML-and-SM-342/blob/main/Labs/Lab09.pdf)
